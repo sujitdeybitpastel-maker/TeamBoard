@@ -3,41 +3,32 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import EmployeesTest, Employees
 from django.db import models
+from .serializers import EmployeesTestSerializer
 
-
-
-@csrf_exempt  # Disable CSRF for simplicity
+@csrf_exempt
 def employee_list_test(request):
     if request.method == 'POST':
         try:
             body = request.body.decode('utf-8')
-            print("----------------Body-------------",body)
             payload = json.loads(body) if body else {}
-            print("----------------payload-------------",payload)
-
         except json.JSONDecodeError:
             return JsonResponse({
                 "status": "Error",
                 "message": "Invalid JSON",
                 "data": []
             }, status=400)
-        
+
         emp_id = payload.get('id')
-        data_limit = payload.get("limit")
-        page_no = payload.get("page")
-        print(data_limit,page_no)
+        data_limit = payload.get('limit')
+        page_no = payload.get('page', 1)
         data = []
 
         if emp_id:
             # Fetch a single employee by ID
             try:
                 emp = EmployeesTest.objects.get(id=emp_id)
-                data.append({
-                    "id": emp.id,
-                    "first_name": emp.f_name,
-                    "last_name": emp.l_name,
-                    "email": emp.email
-                })
+                serializer = EmployeesTestSerializer(emp)
+                data.append(serializer.data)
                 message = f"Employee with id {emp_id} retrieved successfully"
             except EmployeesTest.DoesNotExist:
                 return JsonResponse({
@@ -45,30 +36,29 @@ def employee_list_test(request):
                     "message": f"No employee found with id {emp_id}",
                     "data": []
                 }, status=404)
-        elif data_limit:
-            start = (page_no - 1) * data_limit  # (1-1)*10 = 0
-            end = start + data_limit           # 0+10 = 10
-            employees = EmployeesTest.objects.all().order_by('id')[start:end] 
-            for emp in employees:
-                data.append({
-                    "id": emp.id,
-                    "first_name": emp.f_name,
-                    "last_name": emp.l_name,
-                    "email": emp.email
-                })
-            message = "Employees Pagination retrieved successfully"
 
         else:
-            # Fetch all employees
-            employees = EmployeesTest.objects.all()
-            for emp in employees:
-                data.append({
-                    "id": emp.id,
-                    "first_name": emp.f_name,
-                    "last_name": emp.l_name,
-                    "email": emp.email
-                })
-            message = "Employees retrieved successfully"
+            # Fetch all employees (or paginated)
+            employees = EmployeesTest.objects.all().order_by('id')
+
+            # Apply pagination if limit is provided
+            if data_limit:
+                try:
+                    data_limit = int(data_limit)
+                    page_no = int(page_no)
+                    start = (page_no - 1) * data_limit
+                    end = start + data_limit
+                    employees = employees[start:end]
+                except ValueError:
+                    return JsonResponse({
+                        "status": "Error",
+                        "message": "limit and page must be integers",
+                        "data": []
+                    }, status=400)
+
+            serializer = EmployeesTestSerializer(employees, many=True)
+            data = serializer.data
+            message = "Employees retrieved successfully" if not data_limit else "Employees Pagination retrieved successfully"
 
         return JsonResponse({
             "status": "OK",
@@ -81,6 +71,7 @@ def employee_list_test(request):
             "status": "Error",
             "message": "Method not allowed"
         }, status=405)
+
 
 
 
