@@ -2,16 +2,6 @@ from rest_framework import serializers
 from .models import EmployeesTest
 from .models import Employees
 
-class EmployeesTestSerializer(serializers.ModelSerializer):
-    first_name = serializers.CharField(source='f_name')
-    last_name = serializers.CharField(source='l_name')
-    #email = serializers.CharField(source='email')
-
-    class Meta:
-        model = EmployeesTest
-        fields = ['id', 'first_name', 'last_name', 'email']
-
-
 class EmployeesCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employees
