@@ -1,19 +1,6 @@
 from django.db import models
 from django.utils import timezone
 
-class EmployeesTest(models.Model):
-    id = models.IntegerField(primary_key=True)
-    f_name = models.TextField()
-    l_name = models.TextField()
-    email = models.CharField(max_length=255)
-
-    class Meta:
-        db_table = 'employees_test'
-
-    def __str__(self):
-        return self.f_name
-
-
 class Employees(models.Model):
     id = models.BigAutoField(primary_key=True)  # bigserial, auto-increment
     first_name = models.TextField(null=False, blank=False)  # mandatory

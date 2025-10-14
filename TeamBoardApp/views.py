@@ -1,14 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import EmployeesTest, Employees
+from .models import Employees
 from django.db import models
-from .serializers import EmployeesTestSerializer
 from .serializers import EmployeesSerializer, EmployeesCreateSerializer
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 
-# GET all employees Details
+# Fetch all employees Details
 @csrf_exempt
 def employee_list(request):
     if request.method == 'POST':
