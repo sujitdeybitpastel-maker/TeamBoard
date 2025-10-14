@@ -1,4 +1,7 @@
 from django.http import JsonResponse
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Employees
@@ -8,84 +11,87 @@ from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 
 # Fetch all employees Details
-@csrf_exempt
+@api_view(['POST'])
 def employee_list(request):
-    if request.method == 'POST':
-        try:
-            body = request.body.decode('utf-8')
-            payload = json.loads(body) if body else {}
-            print(payload)
-        except json.JSONDecodeError:
-            return JsonResponse({
-                "status": "Error",
-                "message": "Invalid JSON",
-                "data": []
-            }, status=400)
+    payload = request.data
+    emp_id = payload.get('id')
+    data_limit = payload.get('limit')
+    page_no = payload.get('page', 1)
 
-        emp_id = payload.get('id')
-        data_limit = payload.get('limit')
-        page_no = payload.get('page', 1)
-        data = []
+    data = []
 
+    try:
         if emp_id:
             # Fetch a single employee by ID
             try:
                 emp = Employees.objects.get(id=emp_id)
                 serializer = EmployeesSerializer(emp)
                 data.append(serializer.data)
-                message = f"Employee with retrieved successfully"
+                message = "Employee retrieved successfully"
             except Employees.DoesNotExist:
-                return JsonResponse({
+                return Response({
                     "status": "Error",
                     "message": "No employee found",
                     "data": []
-                }, status=404)
+                }, status=status.HTTP_404_NOT_FOUND)
 
         elif data_limit and page_no:
-            # Fetch all employees (or paginated)
+            # Fetch paginated employee list
+            try:
+                data_limit = int(data_limit)
+                page_no = int(page_no)
+            except ValueError:
+                return Response({
+                    "status": "Error",
+                    "message": "limit and page must be integers",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             employees = Employees.objects.all().order_by('id')
+            start = (page_no - 1) * data_limit
+            end = start + data_limit
+            paginated_employees = employees[start:end]
+            serializer = EmployeesSerializer(paginated_employees, many=True)
+            data = serializer.data
+            if len(data) == 0:
+                return Response({
+                    "status": "Error",
+                    "message": "Employee data not found",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                message = "Employees retrieved successfully"
 
-            # Apply pagination if limit is provided
-            if data_limit:
-                try:
-                    data_limit = int(data_limit)
-                    page_no = int(page_no)
-                    start = (page_no - 1) * data_limit
-                    end = start + data_limit
-                    employees = employees[start:end]
-                except ValueError:
-                    return JsonResponse({
-                        "status": "Error",
-                        "message": "limit and page must be integers",
-                        "data": []
-                    }, status=400)
-
+        elif not payload:
+            # Fetch all employees if payload is empty
+            employees = Employees.objects.all().order_by('id')
             serializer = EmployeesSerializer(employees, many=True)
             data = serializer.data
             message = "Employees retrieved successfully"
-        elif payload == {}:
-            employees = Employees.objects.all().order_by('id')
-            serializer = EmployeesSerializer(employees, many=True)
-            data = serializer.data
-            message = "Employees retrieved successfully"
-        
+
         else:
-            message = "Invalid Input"
+            # Invalid input
+            return Response({
+                "status": "Error",
+                "message": "Invalid Input",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        return JsonResponse({
+        return Response({
             "status": "OK",
             "message": message,
             "data": data
-        })
+        }, status=status.HTTP_200_OK)
 
-    else:
-        return JsonResponse({
+    except Exception as e:
+        return Response({
             "status": "Error",
-            "message": "Method not allowed"
-        }, status=405)
+            "message": f"Internal Server Error: {str(e)}",
+            "data": []
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 # POST create employee
-@csrf_exempt  # disable CSRF for simplicity; better to handle CSRF in production
+@csrf_exempt 
 def employee_create(request):
     if request.method == 'POST':
         try:
@@ -115,32 +121,32 @@ def employee_create(request):
                 return JsonResponse({
                     "status": "Error",
                     "message": "Enter First Name"
-                }, status=200)
+                }, status=409)
             if not email:
                 return JsonResponse({
                     "status": "Error",
                     "message": "Please Enter Email Address"
-                }, status=200)
+                }, status=409)
             if existing_count_email>=1:
                 return JsonResponse({
                     "status": "Error",
                     "message": "Duplicate Email Address Please Enter Unique one"
-                }, status=200)
+                }, status=409)
             if not phone_number:
                 return JsonResponse({
                     "status": "Error",
                     "message": "Please Enter Phone Number"
-                }, status=200)
+                }, status=409)
             if existing_count_phone>=1:
                 return JsonResponse({
                     "status": "Error",
                     "message": "Duplicate Phone Number Please Enter Unique one"
-                }, status=200)
+                }, status=409)
             if not address:
                 return JsonResponse({
                     "status": "Error",
                     "message": "Please Enter Address"
-                }, status=200)
+                }, status=409)
             
         # 1. First_name mandatory not unique
         # 2. email mandatory and unique
