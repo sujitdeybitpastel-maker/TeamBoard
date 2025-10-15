@@ -23,6 +23,9 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 
 
 class MemberSerializer(serializers.ModelSerializer):
+    """
+    This class fetch the data from employee table. In project_memberships table the fk are member_id ==id of employee and project_id == id of project table..
+    """
     id = serializers.IntegerField(source='employees.id', read_only=True)
     first_name = serializers.CharField(source='employees.first_name', read_only=True)
     email = serializers.EmailField(source='employees.email', read_only=True)
