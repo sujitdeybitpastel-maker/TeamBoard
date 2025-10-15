@@ -91,6 +91,50 @@ class ProjectMembership(models.Model):
 
     def __str__(self):
         return f"{self.member} → {self.project}"
+    
+
+
+class Message(models.Model):
+    class Status(models.TextChoices):
+        INACTIVE = '0', 'Inactive'
+        ACTIVE = '1', 'Active'
+        DELETED = '5', 'Deleted'
+
+    id = models.BigAutoField(primary_key=True)  # bigserial
+    project = models.ForeignKey(
+        'Project',  # assumes Project model exists
+        on_delete=models.CASCADE,
+        db_column='project_id',
+        related_name='messages',
+        null=False,
+        blank=False
+    )
+    employees = models.ForeignKey(
+        'Employees',  # assumes Employee model exists
+        on_delete=models.CASCADE,
+        db_column='sender_id',
+        related_name='sent_messages',
+        null=False,
+        blank=False
+    )
+    text_body = models.TextField(null=True, blank=True)  # optional
+    has_media = models.BooleanField(default=False, null=False, blank=False)
+    media_url = models.TextField(null=True, blank=True)  # optional
+    system_creation_time = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+    system_update_time = models.DateTimeField(auto_now=True, null=True, blank=True)
+    status = models.CharField(
+        max_length=1,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        null=False,
+        blank=False
+    )
+
+    class Meta:
+        db_table = 'messages'
+
+    def __str__(self):
+        return f"Message {self.id} by {self.sender}"
 
 
 
