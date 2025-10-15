@@ -2,15 +2,14 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import status
 import json
-from .models import Employees
+from .models import Employees, Project
 from django.db import models
-from .serializers import EmployeesSerializer, EmployeesCreateSerializer
+from .serializers import EmployeesSerializer, EmployeesCreateSerializer,ProjectCreateSerializer,ProjectSerializer
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
 from .authentication import StaticTokenAuthentication
 
-# Employee list Check
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
 @permission_classes([AllowAny])
@@ -94,6 +93,8 @@ def employee_list(request):
     
 
 @api_view(['POST'])
+@authentication_classes([StaticTokenAuthentication])
+@permission_classes([AllowAny])
 def employee_create(request):
     try:
         body = request.data  # DRF automatically parses JSON
@@ -117,7 +118,7 @@ def employee_create(request):
         existing_email = Employees.objects.filter(email=email).exclude(status=5).exists()
         existing_phone = Employees.objects.filter(phone_number=phone_number).exclude(status=5).exists()
 
-        # ✅ Field validations
+        # Field validations
         if not first_name:
             return Response({
                 "status": "Error",
@@ -193,4 +194,140 @@ def employee_create(request):
         return Response({
             "status": "Error",
             "message": f"Internal Server Error: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@authentication_classes([StaticTokenAuthentication])
+@permission_classes([AllowAny])
+def project_create(request):
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        allowed_fields = {"title", "description", "banner_image_url", "created_by"}
+        received_fields = set(body.keys())
+        invalid_fields = received_fields - allowed_fields
+        if invalid_fields:
+            return Response({
+                "status": "Error",
+                "message": f"Correct this key {', '.join(invalid_fields)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        body = request.data
+        title = body.get("title")
+        description = body.get("description")
+        banner_image_url = body.get("banner_image_url")
+        created_by = body.get("created_by")
+        system_creation_time = timezone.now()
+        system_update_time = timezone.now()
+        status_value = 1
+        print(body, title)
+
+        # Auto-increment of ids
+        last_id = Project.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
+        new_id = last_id + 1
+        # Uniqueness checks
+        existing_title = Project.objects.filter(title=title).exclude(status=5).exists()
+        print(existing_title)
+
+        #1. Validate title with not null value and same project name
+        if not title:
+            return Response({
+                "status": "Error",
+                "message": "Enter Project Name"
+            }, status=status.HTTP_409_CONFLICT)
+        if existing_title:
+            return Response({
+                "status": "Error",
+                "message": "Duplicate Project Name."
+            }, status=status.HTTP_409_CONFLICT)
+
+        project = Project.objects.create(
+            id=new_id,
+            title=title,
+            description=description,
+            banner_image_url=banner_image_url,
+            system_creation_time=system_creation_time,
+            system_update_time=system_update_time,
+            status=status_value
+        )
+
+        serializer = ProjectCreateSerializer(project)
+        return Response({
+            "status": "OK",
+            "message": "Employee created successfully",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({
+            "status": "Error",
+            "message": f"Internal Server Error: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+@authentication_classes([StaticTokenAuthentication])
+@permission_classes([AllowAny])
+def project_list(request):
+    payload = request.data
+    project_id = payload.get('id')
+    data_limit = payload.get('limit')
+    page_no = payload.get('page')
+    print(type(project_id))
+    data = []
+
+    try:
+        if project_id and type(project_id) == int:
+            # Fetch a single Project by ID
+            try:
+                emp = Project.objects.get(id=project_id)
+                serializer = ProjectSerializer(emp)
+                data.append(serializer.data)
+                message = "Project details retrieved successfully"
+            except Project.DoesNotExist:
+                return Response({
+                    "status": "Error",
+                    "message": "Project details not found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        elif data_limit and page_no:
+            project = Project.objects.all().order_by('id')
+            start = (page_no - 1) * data_limit
+            end = start + data_limit
+            paginated_project = project[start:end]
+            serializer = ProjectSerializer(paginated_project, many=True)
+            data = serializer.data
+            if len(data) == 0:
+                return Response({
+                    "status": "Error",
+                    "message": "Project details not found",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                message = "Project details retrieved successfully"
+
+        elif not payload:
+            # Fetch all employees if payload is empty
+            employees = Project.objects.all().order_by('id')
+            serializer = ProjectSerializer(employees, many=True)
+            data = serializer.data
+            message = "Project details retrieved successfully"
+
+        else:
+            # Invalid input
+            return Response({
+                "status": "Error",
+                "message": "Invalid Input",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "status": "OK",
+            "message": message,
+            "data": data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            "status": "Error",
+            "message": "Internal Server Error:",
+            "data": []
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

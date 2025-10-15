@@ -22,4 +22,76 @@ class Employees(models.Model):
         return f"{self.first_name} {self.last_name or ''} ({self.get_status_display()})"
 
 
+class Project(models.Model):
+    class Status(models.TextChoices):
+        INACTIVE = '0', 'Inactive'
+        ACTIVE = '1', 'Active'
+        DELETED = '5', 'Deleted'
+
+    id = models.BigAutoField(primary_key=True)  # bigserial
+    title = models.TextField(null=False, blank=False)  # mandatory
+    description = models.TextField(null=True, blank=True)  # optional
+    banner_image_url = models.TextField(null=True, blank=True)  # optional
+    system_creation_time = models.DateTimeField(
+        auto_now_add=True, null=False, blank=False
+    )  # default current timestamp
+    system_update_time = models.DateTimeField(
+        auto_now=False, null=True, blank=True
+    )  # updated on save
+    status = models.CharField(
+        max_length=1,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        null=False,
+        blank=False,
+    )
+
+    class Meta:
+        db_table = 'projects'
+
+    def __str__(self):
+        return self.title
+    
+class ProjectMembership(models.Model):
+    class Status(models.TextChoices):
+        INACTIVE = '0', 'Inactive'
+        ACTIVE = '1', 'Active'
+        DELETED = '5', 'Deleted'
+
+    id = models.BigAutoField(primary_key=True)  # bigserial
+    project = models.ForeignKey(
+        'Project',  # assumes a Project model exists
+        on_delete=models.CASCADE,
+        db_column='project_id',
+        related_name='memberships',
+        null=False,
+        blank=False
+    )
+    employees = models.ForeignKey(
+        'Employees',  # assumes an Employee model exists
+        on_delete=models.CASCADE,
+        db_column='member_id',
+        related_name='project_memberships',
+        null=False,
+        blank=False
+    )
+    is_admin = models.BooleanField(default=False, null=False, blank=False)
+    system_creation_time = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+    system_update_time = models.DateTimeField(auto_now=True, null=True, blank=True)
+    status = models.CharField(
+        max_length=1,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        null=False,
+        blank=False
+    )
+
+    class Meta:
+        db_table = 'project_memberships'
+
+    def __str__(self):
+        return f"{self.member} → {self.project}"
+
+
+
 
