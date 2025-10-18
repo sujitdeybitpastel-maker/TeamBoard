@@ -44,3 +44,34 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'banner_image_url', 'status', 'members']
 
 
+class AddMemberSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = ProjectMembership
+        fields = ['id', 'project_id', 'employees_id', 'is_admin'] # Chnage the name of employees_id -->> member_id
+
+class RemoveMemberSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = ProjectMembership
+        fields = ['project_id', 'employees_id']
+
+# class ProjectMemberSerializer(serializers.ModelSerializer):
+#     members = MemberSerializer(source='memberships', many=True, read_only=True)
+
+#     class Meta:
+#         model = Employees
+#         fields = []
+
+class ProjectMemberSerializer(serializers.ModelSerializer):
+    # Pull fields from the related Employees model
+    id = serializers.IntegerField(source='employees.id', read_only=True)
+    first_name = serializers.CharField(source='employees.first_name', read_only=True)
+    
+    # Field from ProjectMembership itself
+    is_admin = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = ProjectMembership
+        fields = ['id', 'first_name', 'is_admin']
+

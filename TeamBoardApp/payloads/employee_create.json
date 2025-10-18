@@ -1,0 +1,9 @@
+{
+"first_name": "John",
+"last_name": "Doe",
+"email": "john.doe@example.com",
+"password": "hashed_password",
+"phone_number": "1234567890",
+"address": "123 Main Street",
+"profile_image_url": "https://example.com/profile.jpg"
+}

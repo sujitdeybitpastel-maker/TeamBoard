@@ -21,7 +21,7 @@ class StaticTokenAuthentication(BaseAuthentication):
         token = parts[1]
 
         if token != API_AUTH_TOKEN:
-            raise exceptions.AuthenticationFailed("Invalid API token")
+            raise exceptions.AuthenticationFailed("Invalid token")
 
         # Return a dummy user (DRF requires a user, can be Anonymous)
         return (None, None)
