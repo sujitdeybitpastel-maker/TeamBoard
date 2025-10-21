@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Employees,Project,ProjectMembership
+from .models import Employees,Project,ProjectMembership,Message
 
 class EmployeesCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,6 +21,11 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['id', 'title','description','banner_image_url','system_creation_time','status']
 
+class ProjectsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ['id', 'title','description','banner_image_url','status']
+
 
 class MemberSerializer(serializers.ModelSerializer):
     """
@@ -37,11 +42,17 @@ class MemberSerializer(serializers.ModelSerializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    members = MemberSerializer(source='memberships', many=True, read_only=True)
+    members = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = ['id', 'title', 'description', 'banner_image_url', 'status', 'members']
+
+    def get_members(self, obj):
+        # Filter memberships where status != '5'
+        active_memberships = obj.memberships.exclude(status='5')
+        return MemberSerializer(active_memberships, many=True).data
+
 
 
 class AddMemberSerializer(serializers.ModelSerializer):
@@ -51,10 +62,10 @@ class AddMemberSerializer(serializers.ModelSerializer):
         fields = ['id', 'project_id', 'employees_id', 'is_admin'] # Chnage the name of employees_id -->> member_id
 
 class RemoveMemberSerializer(serializers.ModelSerializer):
-    
+    member_id = serializers.IntegerField(source='employees.id', read_only=True)
     class Meta:
         model = ProjectMembership
-        fields = ['project_id', 'employees_id']
+        fields = ['project_id', 'member_id']
 
 # class ProjectMemberSerializer(serializers.ModelSerializer):
 #     members = MemberSerializer(source='memberships', many=True, read_only=True)
@@ -74,4 +85,11 @@ class ProjectMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectMembership
         fields = ['id', 'first_name', 'is_admin']
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    member_id = serializers.IntegerField(source='employees.id', read_only=True)
+    class Meta:
+        model = Message
+        fields = ['id', 'project_id','member_id','text_body','has_media', 'media_url','system_creation_time']
 

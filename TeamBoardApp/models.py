@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from enumfields import Enum, EnumField
 # This is the enum alter data format for enum values
-"""CREATE TYPE statuses AS ENUM ('1','3','5');
+"""CREATE TYPE statuses AS ENUM ('1','0','5');
 ALTER TABLE employees
 ALTER COLUMN status TYPE statuses USING status::text::statuses;"""
 
@@ -15,13 +15,13 @@ class Employees(models.Model):
     first_name = models.TextField(null=False, blank=False)  # mandatory
     last_name = models.TextField(null=True, blank=True)     # optional
     user_name = models.TextField(null=True, blank=True)     # optional
-    email = models.CharField(max_length=255, unique=True, null=False, blank=False)  # mandatory + unique
+    email = models.CharField(max_length=255, null=False, blank=False)  # mandatory + unique
     password = models.TextField(null=False, blank=False)   # mandatory, store hashed
     phone_number = models.TextField(null=False, blank=False)  # mandatory
     address = models.TextField(null=False, blank=False)    # mandatory
     profile_image_url = models.TextField(null=True, blank=True)  # optional
     system_creation_time = models.DateTimeField(default=timezone.now, null=False, blank=False)  # mandatory
-    system_update_time = models.DateTimeField(null=True, blank=True)  # optional
+    system_update_time = models.DateTimeField(null=True, blank=True, default=None) # optional
     status = models.CharField(
         max_length=1,  # length should accommodate the ENUM labels
         choices=Status.choices,
@@ -35,17 +35,14 @@ class Employees(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name or ''} ({self.get_status_display()})"
 
-
-class Status(models.IntegerChoices):
-    INACTIVE = 0, "Inactive"
-    ACTIVE = 1, "Active"
-    DELETED = 5, "Deleted"
 class Project(models.Model):
 
-    status = models.IntegerField(
-    choices=Status.choices,
-    default=Status.ACTIVE,
+    status = models.CharField(
+        max_length=1,  # length should accommodate the ENUM labels
+        choices=Status.choices,
+        default=Status.ACTIVE,
     )
+    
     
     id = models.BigAutoField(primary_key=True)  # bigserial
     title = models.TextField(null=False, blank=False)  # mandatory
@@ -67,10 +64,12 @@ class Project(models.Model):
     
 class ProjectMembership(models.Model):
 
-    status = models.IntegerField(
-    choices=Status.choices,
-    default=Status.ACTIVE,
+    status = models.CharField(
+        max_length=1,  # length should accommodate the ENUM labels
+        choices=Status.choices,
+        default=Status.ACTIVE,
     )
+    
 
     id = models.BigAutoField(primary_key=True)  # bigserial
     project = models.ForeignKey(
@@ -97,15 +96,9 @@ class ProjectMembership(models.Model):
         db_table = 'project_memberships'
 
     def __str__(self):
-        return f"{self.member} → {self.project}"
-    
-
+        return f"{self.employees} → {self.project}"
 
 class Message(models.Model):
-    class Status(models.TextChoices):
-        INACTIVE = '0', 'Inactive'
-        ACTIVE = '1', 'Active'
-        DELETED = '5', 'Deleted'
 
     id = models.BigAutoField(primary_key=True)  # bigserial
     project = models.ForeignKey(
@@ -130,18 +123,16 @@ class Message(models.Model):
     system_creation_time = models.DateTimeField(auto_now_add=True, null=False, blank=False)
     system_update_time = models.DateTimeField(auto_now=True, null=True, blank=True)
     status = models.CharField(
-        max_length=1,
+        max_length=1,  # length should accommodate the ENUM labels
         choices=Status.choices,
         default=Status.ACTIVE,
-        null=False,
-        blank=False
     )
-
+    
     class Meta:
         db_table = 'messages'
 
     def __str__(self):
-        return f"Message {self.id} by {self.sender}"
+        return f"Message {self.id} by {self.employees}"
 
 
 from django.db import models
