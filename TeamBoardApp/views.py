@@ -11,8 +11,12 @@ from rest_framework.permissions import AllowAny
 from .authentication import StaticTokenAuthentication
 from django.db.models.functions import Cast
 from django.db.models import IntegerField
-from django.db.models import F
+from django.db.models import Func, F
+from django.db.models import F, Func, Value
+from django.db.models.functions import Cast
+from django.db.models import CharField
 
+# 1 if payload is null then return the whole list implement in all the parts of code
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
 @permission_classes([AllowAny])
@@ -31,6 +35,7 @@ def employees_list(request):
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         payload = request.data
+        print("------payload------", payload)
         emp_id = payload.get('id')
         data_limit = payload.get('limit')
         page_no = payload.get('page')
@@ -104,63 +109,6 @@ def employees_list(request):
             "data": []
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-@api_view(['POST'])
-@authentication_classes([StaticTokenAuthentication])
-@permission_classes([AllowAny])
-def employee_list(request):
-
-    #Validate the payload
-    try:
-        body = json.loads(request.body.decode('utf-8'))
-        allowed_fields = {"id"}
-        received_fields = set(body.keys())
-        invalid_fields = [f for f in allowed_fields if f not in received_fields]
-        print(invalid_fields)
-        if invalid_fields:
-            return Response({
-                "status": "Error",
-                "message": "Invalid Payload",
-                "data":[]
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        payload = request.data
-        emp_id = payload.get('id')
-        # data_limit = payload.get('limit')
-        # page_no = payload.get('page')
-        data = []
-        if emp_id and type(emp_id) == int:
-            # Fetch a single employee by ID and filter the deleted data
-            try:
-                emp = Employees.objects.exclude(status='5').get(id=emp_id)
-                serializer = EmployeesSerializer(emp)
-                data.append(serializer.data)
-                message = "Employee details retrieved successfully"
-            except Employees.DoesNotExist:
-                return Response({
-                    "status": "Error",
-                    "message": "No employee found",
-                    "data": []
-                }, status=status.HTTP_404_NOT_FOUND)
-        else:
-            # Invalid input
-            return Response({
-                "status": "Error",
-                "message": "Invalid Payload",
-                "data": []
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({
-            "status": "OK",
-            "message": message,
-            "data": data
-        }, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        return Response({
-            "status": "Error",
-            "message": f"Internal Server Error: {str(e)}",
-            "data": []
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
 @permission_classes([AllowAny])
@@ -465,13 +413,23 @@ def project_list(request):
         payload = request.data
         project_id = payload.get('id')
         print(project_id)
+        hashed_emp_id = project_id
+        print(hashed_emp_id)
+        hashed_emp_id = hashed_emp_id.lower().strip() 
         # Check the project id for 0
 
         data = []
-        if project_id and type(project_id) == int:
+        if project_id:
             # Fetch a single Project by ID
             try:
-                emp = Project.objects.exclude(status='5').get(id=project_id)
+                # emp = Employees.objects.exclude(status='5').annotate(
+                #     id_text=Cast(F('id'), CharField()),
+                #     hashed_id=Func(F('id_text'), function='MD5')
+                # ).get(hashed_id=hashed_emp_id)
+                emp = Project.objects.exclude(status='5').annotate(
+                    id_text=Cast(F('id'), CharField()),
+                    hashed_id=Func(F('id_text'), function='MD5')
+                ).get(hashed_id=hashed_emp_id)
                 serializer = ProjectSerializer(emp)
                 print("-----------------emp---------------",emp)
                 data.append(serializer.data)
@@ -503,7 +461,8 @@ def project_list(request):
             "data": []
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    
+
+# Check validation found some problem here
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
 @permission_classes([AllowAny])
@@ -830,13 +789,19 @@ def employee_list(request):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         payload = request.data
         emp_id = payload.get('id')
+        hashed_emp_id = emp_id
+        print(hashed_emp_id)
+        hashed_emp_id = hashed_emp_id.lower().strip() 
         # data_limit = payload.get('limit')
         # page_no = payload.get('page')
         data = []
-        if emp_id and type(emp_id) == int:
+        if hashed_emp_id:
             # Fetch a single employee by ID and filter the deleted data
             try:
-                emp = Employees.objects.exclude(status='5').get(id=emp_id)
+                emp = Employees.objects.exclude(status='5').annotate(
+                    id_text=Cast(F('id'), CharField()),
+                    hashed_id=Func(F('id_text'), function='MD5')
+                ).get(hashed_id=hashed_emp_id)
                 serializer = EmployeesSerializer(emp)
                 data.append(serializer.data)
                 message = "Employee details retrieved successfully"
