@@ -15,7 +15,7 @@ import os
 
 DEBUG = False
 
-#ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*"]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-v7h(+h2w*j(g)p%$a55fo(si)pqutc*6*ojti($vo3&&h^#x^w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 
 
 # Application definition
