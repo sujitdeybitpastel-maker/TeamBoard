@@ -114,7 +114,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'teamboard', 
         'USER': 'teamboard_user',
-        'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE',
+        'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE', # Connection String ping dpg-d3uggr0dl3ps73f4u390-a.oregon-postgres.render.com
+
         'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
         'PORT': '5432',
     }
