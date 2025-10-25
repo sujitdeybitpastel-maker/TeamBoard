@@ -1,0 +1,1 @@
+web: gunicorn TeamBoard.wsgi:application
