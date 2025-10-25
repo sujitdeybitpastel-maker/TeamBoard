@@ -15,5 +15,5 @@ urlpatterns = [
     path('project/message/', views.project_message, name='project-message'), # Send a message in a project.
     path('project/messages/', views.project_messages, name='project-messages'), # Fetch all messages in a project.
     path('employee/messages/', views.employee_messages, name='employee-messages'), # Fetch all messages in a project.
-    
+    #https://teamboard-pyi4.onrender.com/employee
 ]
