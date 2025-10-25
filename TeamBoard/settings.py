@@ -11,12 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import os
-import dj_database_url
 
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+#ALLOWED_HOSTS = ["*"]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,7 +29,7 @@ SECRET_KEY = 'django-insecure-v7h(+h2w*j(g)p%$a55fo(si)pqutc*6*ojti($vo3&&h^#x^w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-#ALLOWED_HOSTS = []
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -100,12 +98,23 @@ WSGI_APPLICATION = 'TeamBoard.wsgi.application'
 # }
 
 # Database for deployment
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
+#         conn_max_age=600,
+#         ssl_require=True
+#     )
+# }
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'teamboard', 
+        'USER': 'teamboard_user',
+        'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE',
+        'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
+        'PORT': '5432',
+    }
 }
 
 # Password validation
