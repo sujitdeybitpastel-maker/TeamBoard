@@ -4,7 +4,7 @@ from rest_framework import status
 import json
 from .models import Employees, Project,ProjectMembership,TableTestingEnumData,Message
 from django.db import models
-from .serializers import EmployeesSerializer, EmployeesCreateSerializer,ProjectCreateSerializer,ProjectSerializer,AddMemberSerializer,RemoveMemberSerializer,ProjectMemberSerializer,ProjectMemberSerializer,ProjectsSerializer, MessageSerializer
+from .serializers import EmployeesSerializer, EmployeesCreateSerializer,ProjectCreateSerializer,ProjectSerializer,AddMemberSerializer,RemoveMemberSerializer,ProjectMemberSerializer,ProjectMemberSerializer,ProjectsSerializer, MessageSerializer,ProjectMessagesSerializer, EmployeeMessagesSerializer
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
@@ -1037,4 +1037,171 @@ def project_message(request):
             "status": "Error",
             "message": f"Internal Server Error: {str(e)}",
             "data":[]
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+@authentication_classes([StaticTokenAuthentication])
+@permission_classes([AllowAny])
+def project_messages(request):
+    try:
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+        #payload = request.data
+        project_id = payload.get('project_id')
+        data_limit = payload.get('limit')
+        page_no = payload.get('page')
+        hashed_proj_id = project_id
+        print(hashed_proj_id,data_limit,page_no)
+        #hashed_proj_id = hashed_proj_id.lower().strip()
+        data = []
+        if hashed_proj_id:
+            # Fetch a single employee by ID and filter the deleted data
+            try:
+                mess = Message.objects.exclude(status='5').annotate(
+                    id_text=Cast(F('project_id'), CharField()),
+                    hashed_id=Func(F('id_text'), function='MD5')
+                ).filter(hashed_id=hashed_proj_id)
+                serializer = ProjectMessagesSerializer(mess, many=True)
+                data.append(serializer.data)
+                message = "Messages retrieved successfully"
+            except Message.DoesNotExist:
+                return Response({
+                    "status": "Error",
+                    "message": "No employee found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+        elif data_limit and page_no:
+            mess = Message.objects.all().order_by('id')
+            start = (page_no - 1) * data_limit
+            end = start + data_limit
+            paginated_mss = mess[start:end]
+            serializer = ProjectMessagesSerializer(paginated_mss, many=True)
+            data = serializer.data
+            if len(data) == 0:
+                return Response({
+                    "status": "Error",
+                    "message": "Messages details not found",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                message = "Messages retrieved successfully"
+        elif not payload:
+            mess = Message.objects.all().order_by('id')
+            serializer = ProjectMessagesSerializer(mess, many=True)
+            data = serializer.data
+            message = "Messages retrieved successfully"
+        else:
+            # Invalid input
+            return Response({
+                "status": "Error",
+                "message": "Invalid Payload",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "status": "OK",
+            "message": message,
+            "data": data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            "status": "Error",
+            "message": f"Internal Server Error: {str(e)}",
+            "data": []
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST'])
+@authentication_classes([StaticTokenAuthentication])
+@permission_classes([AllowAny])
+def employee_messages(request):
+    try:
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+        #payload = request.data
+        member_id = payload.get('member_id')
+        data_limit = payload.get('limit')
+        page_no = payload.get('page')
+        hashed_member_id = member_id
+        print(hashed_member_id,data_limit,page_no)
+        #hashed_proj_id = hashed_proj_id.lower().strip()
+        data = []
+        if hashed_member_id:
+            # Fetch a single employee by ID and filter the deleted data
+            try:
+                mess = Message.objects.exclude(status='5').annotate(
+                    id_text=Cast(F('employees_id'), CharField()),
+                    hashed_id=Func(F('id_text'), function='MD5')
+                ).filter(hashed_id=hashed_member_id)
+                serializer = EmployeeMessagesSerializer(mess, many=True)
+                message = "Messages retrieved successfully"
+                if serializer.data:
+                    #data.append(serializer.data)
+                    return Response({
+                        "status": "OK",
+                        "message": message,
+                        "data": serializer.data
+                    }, status=status.HTTP_200_OK)
+                else:
+                    #data.append(serializer.data)
+                    message = "No Message found"
+                    return Response({
+                        "status": "OK",
+                        "message": message,
+                        "data": serializer.data
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+            except Message.DoesNotExist:
+                return Response({
+                    "status": "Error",
+                    "message": "No employee found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+        elif data_limit and page_no:
+            mess = Message.objects.all().order_by('id')
+            start = (page_no - 1) * data_limit
+            end = start + data_limit
+            paginated_mss = mess[start:end]
+            serializer = EmployeeMessagesSerializer(paginated_mss, many=True)
+            data = serializer.data
+            if len(data) == 0:
+                return Response({
+                    "status": "Error",
+                    "message": "Messages details not found",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    "status": "OK",
+                    "message": "Messages retrieved successfully",
+                    "data": serializer.data
+                }, status=status.HTTP_200_OK)
+        elif not payload:
+            mess = Message.objects.all().order_by('id')
+            serializer = EmployeeMessagesSerializer(mess, many=True)
+            data = serializer.data
+            return Response({
+                "status": "OK",
+                "message": "Messages retrieved successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            # Invalid input
+            return Response({
+                "status": "Error",
+                "message": "Invalid Payload",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return Response({
+            "status": "Error",
+            "message": f"Internal Server Error: {str(e)}",
+            "data": []
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

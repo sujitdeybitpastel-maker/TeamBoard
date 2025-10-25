@@ -179,3 +179,42 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_member_id(self, obj):
         """Return the hashed employee ID, key shown as member_id."""
         return generate_hashed_id(obj.employees_id)
+    
+class ProjectMessagesSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    sender = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = ['id','sender','text_body','has_media','media_url','system_creation_time']
+
+    def get_id(self, obj):
+        """Return the hashed message ID."""
+        return hashlib.md5(str(obj.id).encode()).hexdigest()
+
+    def get_sender(self, obj):
+        """Return a nested sender object with hashed member_id and first_name."""
+        return {
+            "member_id": generate_hashed_id(obj.employees_id),
+            "first_name": obj.employees.first_name if obj.employees else None
+        }
+
+
+class EmployeeMessagesSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    project = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = ['id','project','text_body','has_media','media_url','system_creation_time']
+
+    def get_id(self, obj):
+        """Return the hashed message ID."""
+        return hashlib.md5(str(obj.id).encode()).hexdigest()
+
+    def get_project(self, obj):
+        """Return a nested projects object with hashed project_id and first_name."""
+        return {
+            "project_id": generate_hashed_id(obj.project_id),
+            "title": obj.project.title if obj.project else None
+        }
