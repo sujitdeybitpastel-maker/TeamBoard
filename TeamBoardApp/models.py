@@ -21,7 +21,7 @@ class Employees(models.Model):
     address = models.TextField(null=False, blank=False)    # mandatory
     profile_image_url = models.TextField(null=True, blank=True)  # optional
     system_creation_time = models.DateTimeField(default=timezone.now, null=False, blank=False)  # mandatory
-    system_update_time = models.DateTimeField(null=True, blank=True, default=None) # optional
+    system_update_time = models.DateTimeField(auto_now=False, null=True, blank=True) # optional
     status = models.CharField(
         max_length=1,  # length should accommodate the ENUM labels
         choices=Status.choices,
@@ -90,7 +90,7 @@ class ProjectMembership(models.Model):
     )
     is_admin = models.BooleanField(default=False, null=False, blank=False)
     system_creation_time = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-    system_update_time = models.DateTimeField(auto_now=True, null=True, blank=True)
+    system_update_time = models.DateTimeField(auto_now=False, null=True, blank=True)
 
     class Meta:
         db_table = 'project_memberships'
@@ -121,7 +121,7 @@ class Message(models.Model):
     has_media = models.BooleanField(default=False, null=False, blank=False)
     media_url = models.TextField(null=True, blank=True)  # optional
     system_creation_time = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-    system_update_time = models.DateTimeField(auto_now=True, null=True, blank=True)
+    system_update_time = models.DateTimeField(auto_now=False, null=True, blank=True)
     status = models.CharField(
         max_length=1,  # length should accommodate the ENUM labels
         choices=Status.choices,
@@ -133,9 +133,6 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message {self.id} by {self.employees}"
-
-
-from django.db import models
 
 class Status_1(models.IntegerChoices):
     INACTIVE = 2, "Inactive"

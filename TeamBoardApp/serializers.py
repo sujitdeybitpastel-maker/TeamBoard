@@ -195,7 +195,7 @@ class ProjectMessagesSerializer(serializers.ModelSerializer):
     def get_sender(self, obj):
         """Return a nested sender object with hashed member_id and first_name."""
         return {
-            "member_id": generate_hashed_id(obj.employees_id),
+            "id": generate_hashed_id(obj.employees_id),
             "first_name": obj.employees.first_name if obj.employees else None
         }
 
@@ -215,6 +215,6 @@ class EmployeeMessagesSerializer(serializers.ModelSerializer):
     def get_project(self, obj):
         """Return a nested projects object with hashed project_id and first_name."""
         return {
-            "project_id": generate_hashed_id(obj.project_id),
+            "id": generate_hashed_id(obj.project_id),
             "title": obj.project.title if obj.project else None
         }

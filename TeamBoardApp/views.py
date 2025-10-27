@@ -10,23 +10,54 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
 from .authentication import StaticTokenAuthentication
 from django.db.models.functions import Cast
-from django.db.models import IntegerField
 from django.db.models import Func, F
-from django.db.models import F, Func, Value
 from django.db.models.functions import Cast
 from django.db.models import CharField
+
+def get_original_id_from_hash(model, hashed_id):
+    """
+    Given an MD5 hash of an integer primary key,
+    return the original integer ID from the database.
+    """
+    try:
+        obj = model.objects.exclude(status='5').annotate(
+            hashed_id=Func(Cast(F('id'), CharField()), function='MD5')
+        ).filter(hashed_id=hashed_id).first()
+        return obj.id
+    except model.DoesNotExist:
+        return None
+    except Exception:
+        return None
+    
+def get_original_id_from_hash_project_membership(model, hashed_id):
+    """
+    Given an MD5 hash of an integer primary key,
+    return the original integer ID from the database.
+    """
+    try:
+        obj = model.objects.exclude(status='5').annotate(
+            hashed_id=Func(Cast(F('project_id'), CharField()), function='MD5')
+        ).filter(hashed_id=hashed_id).first()
+        return obj.project_id
+    except model.DoesNotExist:
+        return None
+    except Exception:
+        return None
 
 # 1 if payload is null then return the whole list implement in all the parts of code
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
 @permission_classes([AllowAny])
 def employees_list(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except json.JSONDecodeError:
+        payload = {}
 
     #Validate the payload
     try:
-        body = json.loads(request.body.decode('utf-8'))
         allowed_fields = {"limit", "page"}
-        received_fields = set(body.keys())
+        received_fields = set(payload.keys())
         invalid_fields = received_fields - allowed_fields
         if invalid_fields:
             return Response({
@@ -34,13 +65,13 @@ def employees_list(request):
                 "message": "Invalid Payload",
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        payload = request.data
+        #payload = request.data
         print("------payload------", payload)
         emp_id = payload.get('id')
         data_limit = payload.get('limit')
         page_no = payload.get('page')
         data = []
-        if emp_id and type(emp_id) == int:
+        if emp_id:
             # Fetch a single employee by ID and filter the deleted data
             try:
                 emp = Employees.objects.exclude(status='5').get(id=emp_id)
@@ -108,129 +139,7 @@ def employees_list(request):
             "message": f"Internal Server Error: {str(e)}",
             "data": []
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-@api_view(['POST'])
-@authentication_classes([StaticTokenAuthentication])
-@permission_classes([AllowAny])
-def employee_create(request):
-    # 1. Trim the values of f_name, l_name, address -Done
-    # 2. Validate email address/Phone number - Pending
-    # 3. Validate all required field for Null value - Done
-    # 4. Validate payload keys - Done 
-    try:
-        body = json.loads(request.body.decode('utf-8'))
-        allowed_fields = ["first_name", "last_name", "email", "password","phone_number","address","profile_image_url"]
-        received_fields = list(body.keys())
-        print(received_fields)
-        #invalid_fields = received_fields - allowed_fields
-        invalid_fields = [f for f in allowed_fields if f not in received_fields]
-        print(invalid_fields)
-        if invalid_fields:
-            return Response({
-                "status": "Error",
-                "message": "Invalid Payload",
-                "data":[]
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        payload = request.data
-        cleaned_data = {k: v.strip() if isinstance(v, str) else v for k, v in payload.items()}
-        print(payload)
-        first_name = cleaned_data.get("first_name")
-        last_name = cleaned_data.get("last_name")
-        email = cleaned_data.get("email")
-        password = cleaned_data.get("password")
-        phone_number = cleaned_data.get("phone_number")
-        address = cleaned_data.get("address")
-        profile_image_url = cleaned_data.get("profile_image_url")
-        system_creation_time = timezone.now()
-        #system_update_time = timezone.now()
-        # status_value = 1
-        
-        # Auto-increment manually if needed
-        last_id = Employees.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
-        new_id = last_id + 1
 
-        # Uniqueness checks (ignore deleted employees)
-        existing_email = Employees.objects.exclude(status='5').filter(email=email).first()
-        existing_phone = Employees.objects.exclude(status='5').filter(phone_number=phone_number).first()
-
-        # Field validations
-        if not first_name:
-            return Response({
-                "status": "Error",
-                "message": "Enter First Name",
-                "data":[]
-            }, status=status.HTTP_409_CONFLICT)
-
-        if not email:
-            return Response({
-                "status": "Error",
-                "message": "Please Enter Email Address",
-                "data":[]
-            }, status=status.HTTP_409_CONFLICT)
-
-        if existing_email or existing_phone:
-            return Response({
-                "status": "Error",
-                "message": "Duplicate Data. Please Enter a Unique one"
-            }, status=status.HTTP_409_CONFLICT)
-
-        if not password:
-            return Response({
-                "status": "Error",
-                "message": "Please Enter Password",
-                "data":[]
-            }, status=status.HTTP_409_CONFLICT)
-
-        if not phone_number:
-            return Response({
-                "status": "Error",
-                "message": "Please Enter Phone Number",
-                "data":[]
-            }, status=status.HTTP_409_CONFLICT)
-
-        # if existing_phone:
-        #     return Response({
-        #         "status": "Error",
-        #         "message": "Duplicate Phone Number. Please Enter a Unique one"
-        #     }, status=status.HTTP_409_CONFLICT)
-
-
-        if not address:
-            return Response({
-                "status": "Error",
-                "message": "Please Enter Address",
-                "data":[]
-            }, status=status.HTTP_409_CONFLICT)
-
-        # ✅ Create employee using ORM
-        hashed_password = make_password(password)
-        employee = Employees.objects.create(
-            id=new_id,
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            password=hashed_password,
-            phone_number=phone_number,
-            address=address,
-            profile_image_url=profile_image_url,
-            system_creation_time=system_creation_time,
-            system_update_time=None
-            # status=status_value
-        )
-
-        serializer = EmployeesCreateSerializer(employee)
-        return Response({
-            "status": "OK",
-            "message": "Employee created successfully",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        return Response({
-            "status": "Error",
-            "message": f"Internal Server Error: {str(e)}",
-            "data":[]
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @authentication_classes([StaticTokenAuthentication])
@@ -238,7 +147,8 @@ def employee_create(request):
 def project_create(request):
     try:
         body = json.loads(request.body.decode('utf-8'))
-        allowed_fields = ["title", "description", "banner_image_url", "created_by"]
+        #allowed_fields = ["title", "description", "banner_image_url", "created_by"]
+        allowed_fields = ["title", "created_by"]
         received_fields = list(body.keys())
         print(received_fields)
         #invalid_fields = received_fields - allowed_fields
@@ -261,11 +171,19 @@ def project_create(request):
         title = cleaned_data.get("title")
         description = cleaned_data.get("description")
         banner_image_url = cleaned_data.get("banner_image_url")
-        #created_by = cleaned_data.get("created_by")
+        created_by = cleaned_data.get("created_by")
         system_creation_time = timezone.now()
         #system_update_time = timezone.now()
         # status_value = 1
-        print(cleaned_data, len(title))
+        print(created_by)
+        print("------------------",get_original_id_from_hash(Employees,created_by))
+
+        if not get_original_id_from_hash(Employees,created_by):
+                return Response({
+                "status": "Error",
+                "message": "Employee is not Present",
+                "data":[]
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
         # Auto-increment of ids
@@ -275,8 +193,9 @@ def project_create(request):
         existing_title = Project.objects.exclude(status='5').filter(title=title).first()
         print(existing_title)
 
-
-
+        last_id_membership = ProjectMembership.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
+        new_id_membership = last_id_membership + 1
+        
         #1. Validate title with not null value and same project name
         if not title:
             return Response({
@@ -299,11 +218,18 @@ def project_create(request):
             system_creation_time=system_creation_time
             #system_update_time=system_update_time
         )
-
+        ProjectMembership.objects.create(
+            id=new_id_membership,
+            project_id=new_id,
+            employees_id=get_original_id_from_hash(Employees,created_by),
+            is_admin=True,
+            system_creation_time=system_creation_time
+            #system_update_time=system_update_time
+        )
         serializer = ProjectCreateSerializer(project)
         return Response({
             "status": "OK",
-            "message": "Employee created successfully",
+            "message": "Project created successfully",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
@@ -317,9 +243,13 @@ def project_create(request):
 @permission_classes([AllowAny])
 def projects_list(request):
     try:
-        body = json.loads(request.body.decode('utf-8'))
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+        #body = json.loads(request.body.decode('utf-8'))
         allowed_fields = {"limit", "page"}
-        received_fields = set(body.keys())
+        received_fields = set(payload.keys())
         invalid_fields = received_fields - allowed_fields
         if invalid_fields:
             return Response({
@@ -327,7 +257,7 @@ def projects_list(request):
                 "message": "Invalid Payload",
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        payload = request.data
+        #payload = request.data
         project_id = payload.get('project_id')
         data_limit = payload.get('limit')
         page_no = payload.get('page')
@@ -335,7 +265,7 @@ def projects_list(request):
         # Check the project id for 0
 
         data = []
-        if project_id and type(project_id) == int:
+        if project_id:
             # Fetch a single Project by ID
             try:
                 emp = Project.objects.exclude(status='5').get(id=project_id)
@@ -384,7 +314,7 @@ def projects_list(request):
         return Response({
             "status": "OK",
             "message": message,
-            "data": data
+            "data": serializer.data
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -495,9 +425,13 @@ def project_add_member(request):
         print(project_id,member_id,is_admin)
         #created_by = cleaned_data.get("created_by")
         system_creation_time = timezone.now()
-        system_update_time = timezone.now()
+        #system_update_time = timezone.now()
         # status_value = 1
         print(cleaned_data)
+
+        project_id=get_original_id_from_hash(Project, project_id)
+        member_id=get_original_id_from_hash(Employees,member_id)
+
 
         existing_employee = Employees.objects.exclude(status='5').filter(id=member_id).first()
         existing_project = Project.objects.exclude(status='5').filter(id=project_id).first()
@@ -523,7 +457,7 @@ def project_add_member(request):
         if existing_member:
             return Response({
                 "status": "Error",
-                "message": "Duplicate Member",
+                "message": "Member Allready Present",
                 "data":[]
             }, status=status.HTTP_409_CONFLICT)
         #1. project_id and member_id not null value
@@ -545,14 +479,13 @@ def project_add_member(request):
             project_id=project_id,
             employees_id=member_id,
             is_admin=is_admin,
-            system_creation_time=system_creation_time,
-            system_update_time=system_update_time
+            system_creation_time=system_creation_time
         )
 
         serializer = AddMemberSerializer(member_create)
         return Response({
             "status": "OK",
-            "message": "Employee created successfully",
+            "message": "Member added successfully",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
@@ -561,8 +494,6 @@ def project_add_member(request):
             "message": f"Internal Server Error: {str(e)}",
             "data":[]
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-
 
 
 @api_view(['POST'])
@@ -647,7 +578,8 @@ def project_remove_member(request):
                 "message": "Enter Member ID",
                 "data": []
             }, status=status.HTTP_409_CONFLICT)
-        
+        project_id=get_original_id_from_hash(Project, project_id)
+        member_id=get_original_id_from_hash(Employees,member_id)
         member_delete = (
             ProjectMembership.objects
             .filter(project_id=project_id, employees_id=member_id)
@@ -671,7 +603,7 @@ def project_remove_member(request):
                 "status": "Error",
                 "message": "Member or Project is Missing",
                 "data": []
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({
             "status": "Error",
@@ -686,9 +618,13 @@ def project_remove_member(request):
 def project_members_list(request):
 # Validate the payload
     try:
-        body = json.loads(request.body.decode('utf-8'))
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            payload = {}
+        #body = json.loads(request.body.decode('utf-8'))
         allowed_fields = {"project_id", "limit", "page"}
-        received_fields = set(body.keys())
+        received_fields = set(payload.keys())
         invalid_fields = received_fields - allowed_fields
         if invalid_fields:
             return Response({
@@ -696,7 +632,7 @@ def project_members_list(request):
                 "message": "Invalid Payload",
                 "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        payload = request.data
+        #payload = request.data
         project_id = payload.get('project_id')
         data_limit = payload.get('limit')
         page_no = payload.get('page')
@@ -704,7 +640,10 @@ def project_members_list(request):
         # Check the project id for 0
 
         data = []
-        if project_id and type(project_id) == int:
+        if project_id:
+            print("project_id_before hash", project_id)
+            project_id=get_original_id_from_hash_project_membership(ProjectMembership,project_id)
+            print("project_id_after hash", project_id)
             # Fetch all active (non-deleted) memberships
             try:
                 memberships = ProjectMembership.objects.exclude(status='5').filter(project_id=project_id).order_by('employees_id')  # Use '5' if status is CharField
@@ -785,7 +724,8 @@ def employee_list(request):
         if invalid_fields:
             return Response({
                 "status": "Error",
-                "message": "Invalid Payload"
+                "message": "Invalid Payload",
+                "data": []
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         payload = request.data
         emp_id = payload.get('id')
@@ -822,7 +762,7 @@ def employee_list(request):
         return Response({
             "status": "OK",
             "message": message,
-            "data": data
+            "data": serializer.data
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -842,7 +782,7 @@ def employee_create(request):
     # 4. Validate payload keys - Done 
     try:
         body = json.loads(request.body.decode('utf-8'))
-        allowed_fields = ["first_name", "last_name", "email", "password","phone_number","address","profile_image_url"]
+        allowed_fields = ["first_name", "email", "password","phone_number","address"]
         received_fields = list(body.keys())
         print(received_fields)
         #invalid_fields = received_fields - allowed_fields
@@ -865,7 +805,7 @@ def employee_create(request):
         address = cleaned_data.get("address")
         profile_image_url = cleaned_data.get("profile_image_url")
         system_creation_time = timezone.now()
-        system_update_time = timezone.now()
+        #system_update_time = timezone.now()
         # status_value = 1
         
         # Auto-increment manually if needed
@@ -874,7 +814,7 @@ def employee_create(request):
 
         # Uniqueness checks (ignore deleted employees)
         existing_email = Employees.objects.exclude(status='5').filter(email=email).first()
-        existing_phone = Employees.objects.exclude(status='5').filter(phone_number=phone_number).first()
+        #existing_phone = Employees.objects.exclude(status='5').filter(phone_number=phone_number).first()
 
         # Field validations
         if not first_name:
@@ -891,10 +831,10 @@ def employee_create(request):
                 "data":[]
             }, status=status.HTTP_409_CONFLICT)
 
-        if existing_email or existing_phone:
+        if existing_email:
             return Response({
                 "status": "Error",
-                "message": "Duplicate Data. Please Enter a Unique one",
+                "message": "Email Allready Present",
                 "data":[]
             }, status=status.HTTP_409_CONFLICT)
 
@@ -938,7 +878,7 @@ def employee_create(request):
             address=address,
             profile_image_url=profile_image_url,
             system_creation_time=system_creation_time,
-            system_update_time=system_update_time
+            #system_update_time=system_update_time
             # status=status_value
         )
 
@@ -963,7 +903,8 @@ def employee_create(request):
 def project_message(request):
     try:
         body = json.loads(request.body.decode('utf-8'))
-        allowed_fields = ["project_id", "sender_id", "text_body", "media_url"]
+        #allowed_fields = ["project_id", "sender_id", "text_body", "media_url"]
+        allowed_fields = ["project_id", "sender_id"]
         received_fields = list(body.keys())
         print(received_fields)
         #invalid_fields = received_fields - allowed_fields
@@ -989,9 +930,9 @@ def project_message(request):
         media_url = cleaned_data.get("media_url")
         #created_by = cleaned_data.get("created_by")
         system_creation_time = timezone.now()
-        system_update_time = timezone.now()
+        #system_update_time = timezone.now()
         # status_value = 1
-        print(cleaned_data)
+        print(text_body, media_url)
 
 
         # Auto-increment of ids
@@ -1000,36 +941,44 @@ def project_message(request):
         # Uniqueness checks
         # existing_title = Message.objects.exclude(status='5').filter(title=title).first()
         # print(existing_title)
-
+        project_id=get_original_id_from_hash(Project, project_id)
+        member_id=get_original_id_from_hash(Employees,sender_id)
         #1. Validate title with not null value and same project name
         if not project_id:
             return Response({
                 "status": "Error",
-                "message": "Enter Correct Payload",
+                "message": "Member or Project Missing",
                 "data":[]
             }, status=status.HTTP_409_CONFLICT)
-        if not sender_id:
+        if not member_id:
             return Response({
                 "status": "Error",
-                "message": "Enter Correct Payload",
+                "message": "Member or Project Missing",
+                "data":[]
+            }, status=status.HTTP_409_CONFLICT)
+        if not text_body and not media_url:
+            return Response({
+                "status": "Error",
+                "message": "Message is Missing",
                 "data":[]
             }, status=status.HTTP_409_CONFLICT)
 
+        
         new_message = Message.objects.create(
             id=new_id,
             project_id=project_id,
-            employees_id=sender_id,
+            employees_id=member_id,
             text_body=text_body,
             media_url=media_url,
-            has_media = True if len(media_url) > 1 else False,
-            system_creation_time=system_creation_time,
-            system_update_time=system_update_time
+            has_media = True if media_url else False,
+            system_creation_time=system_creation_time
+            #system_update_time=system_update_time
         )
 
         serializer = MessageSerializer(new_message)
         return Response({
             "status": "OK",
-            "message": "Employee created successfully",
+            "message": "Message posted successfully",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
@@ -1104,7 +1053,7 @@ def project_messages(request):
         return Response({
             "status": "OK",
             "message": message,
-            "data": data
+            "data": serializer.data
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -1120,6 +1069,7 @@ def project_messages(request):
 @permission_classes([AllowAny])
 def employee_messages(request):
     try:
+        # Validate for blank payload
         try:
             payload = json.loads(request.body.decode('utf-8'))
         except json.JSONDecodeError:
