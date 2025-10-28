@@ -101,26 +101,26 @@ WSGI_APPLICATION = 'TeamBoard.wsgi.application'
 # }
 
 # Database for deployment
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
-
-# Data base of Server 
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'teamboard', 
-#         'USER': 'teamboard_user',
-#         'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE', # Connection String ping dpg-d3uggr0dl3ps73f4u390-a.oregon-postgres.render.com
-
-#         'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
-#         'PORT': '5432',
-#     }
+#     'default': dj_database_url.config(
+#         default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
+#         conn_max_age=600,
+#         ssl_require=True
+#     )
 # }
+
+# Data base of Server Database for deployment
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'teamboard', 
+        'USER': 'teamboard_user',
+        'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE', # Connection String ping dpg-d3uggr0dl3ps73f4u390-a.oregon-postgres.render.com
+
+        'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
+        'PORT': '5432',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
