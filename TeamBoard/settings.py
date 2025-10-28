@@ -89,16 +89,16 @@ WSGI_APPLICATION = 'TeamBoard.wsgi.application'
 # }
 
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'TeamBoard', 
-#         'USER': 'postgres',
-#         'PASSWORD': 'sujit',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'TeamBoard', 
+        'USER': 'postgres',
+        'PASSWORD': 'sujit',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 
 # Database for deployment
 # DATABASES = {
@@ -109,17 +109,18 @@ WSGI_APPLICATION = 'TeamBoard.wsgi.application'
 #     )
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'teamboard', 
-        'USER': 'teamboard_user',
-        'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE', # Connection String ping dpg-d3uggr0dl3ps73f4u390-a.oregon-postgres.render.com
+# Data base of Server 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'teamboard', 
+#         'USER': 'teamboard_user',
+#         'PASSWORD': 'sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE', # Connection String ping dpg-d3uggr0dl3ps73f4u390-a.oregon-postgres.render.com
 
-        'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
-        'PORT': '5432',
-    }
-}
+#         'HOST': 'dpg-d3uggr0dl3ps73f4u390-a',
+#         'PORT': '5432',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

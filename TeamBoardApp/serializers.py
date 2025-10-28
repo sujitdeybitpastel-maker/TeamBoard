@@ -67,8 +67,8 @@ class MemberSerializer(serializers.ModelSerializer):
     """
     This class fetch the data from employee table. In project_memberships table the fk are member_id ==id of employee and project_id == id of project table..
     """
-    id = serializers.IntegerField(source='employees.id', read_only=True)
-    id = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField(source='employees.id', read_only=True)
+    #id = serializers.SerializerMethodField()
     first_name = serializers.CharField(source='employees.first_name', read_only=True)
     email = serializers.EmailField(source='employees.email', read_only=True)
     phone_number = serializers.EmailField(source='employees.phone_number', read_only=True)
@@ -79,7 +79,7 @@ class MemberSerializer(serializers.ModelSerializer):
     
     def get_id(self, obj):
         """Return the hashed version of the employee's ID."""
-        return hashlib.md5(str(obj.id).encode()).hexdigest()
+        return hashlib.md5(str(obj.employees.id).encode()).hexdigest()
 
 
 class ProjectSerializer(serializers.ModelSerializer):
