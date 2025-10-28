@@ -89,25 +89,25 @@ WSGI_APPLICATION = 'TeamBoard.wsgi.application'
 # }
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'TeamBoard', 
-        'USER': 'postgres',
-        'PASSWORD': 'sujit',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'TeamBoard', 
+#         'USER': 'postgres',
+#         'PASSWORD': 'sujit',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 # Database for deployment
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('postgresql://teamboard_user:sW8tfTer9Gv1XQUYRL6U3EyR4LFpLvPE@dpg-d3uggr0dl3ps73f4u390-a/teamboard'),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 
 # Data base of Server 
 # DATABASES = {
